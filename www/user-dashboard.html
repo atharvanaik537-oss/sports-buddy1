@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>My Dashboard | Sports Buddy</title>
+    <link rel="stylesheet" href="assets/css/style.css">
+    <style>
+        /* 1. Reset for Mobile */
+        * { box-sizing: border-box; } /* Crucial: stops elements from pushing off-screen */
+        
+        body { 
+            background: #f4f7f6; 
+            font-family: 'Segoe UI', sans-serif; 
+            margin: 0; 
+            padding: 0;
+            width: 100vw;
+            overflow-x: hidden; /* Stops horizontal wobble */
+        }
+
+        /* 2. Fix the Navigation Bar */
+        .user-nav { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            padding: 15px 20px; 
+            background: #1a1a2e; 
+            color: white;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+        .user-nav h2 { margin: 0; font-size: 1.1rem; }
+        .btn-logout { 
+            background: #ff4d4d; 
+            color: white; 
+            border: none; 
+            padding: 8px 15px; 
+            border-radius: 6px; 
+            font-size: 12px;
+        }
+
+        /* 3. The Main Container */
+        .container { 
+            width: 100%; 
+            padding: 15px; 
+        }
+
+        /* 4. Force Cards to Stack and Fit */
+        .card { 
+            background: white; 
+            padding: 20px; 
+            border-radius: 12px; 
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05); 
+            margin-bottom: 20px;
+            width: 100%; /* Ensures card fits the screen */
+            display: block; /* Forces vertical stacking */
+        }
+
+        /* 5. Fix Form Inputs */
+        h3 { margin-top: 0; color: #1a1a2e; font-size: 1.2rem; }
+        
+        input, select, textarea { 
+            width: 100% !important; /* Forces input to stay inside card */
+            padding: 12px; 
+            margin: 8px 0; 
+            border: 1px solid #ddd; 
+            border-radius: 8px; 
+            font-size: 16px; 
+            display: block;
+        }
+
+        .btn-primary { 
+            width: 100% !important; 
+            padding: 14px; 
+            background: #007bff; 
+            color: white; 
+            border: none; 
+            border-radius: 8px; 
+            font-weight: bold; 
+            margin-top: 10px;
+        }
+
+        /* 6. Fix "My Active Events" text */
+        .empty-state {
+            text-align: center;
+            color: #888;
+            padding: 20px;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <nav class="user-nav">
+        <h2>Sports Buddy</h2>
+        <div style="display: flex; align-items: center; gap: 20px;">
+            <button id="logoutBtn" class="btn-logout">Logout</button>
+        </div>
+    </nav>
+
+    <main class="container">
+        <section class="card">
+            <h3>Host a Sports Event</h3>
+            <div id="eventForm">
+                <div class="form-group">
+                    <input type="text" id="eventTitle" placeholder="Event Name (e.g. Saturday Morning Football)" required>
+                </div>
+                
+                <div class="form-group" style="display: flex; gap: 10px;">
+                    <select id="eventSportType" style="flex: 1;" required>
+                        <option value="" disabled selected>Select Sport</option>
+                    </select>
+                    
+                    <select id="eventCity" style="flex: 1;" required>
+                        <option value="" disabled selected>Select City</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <input type="text" id="eventArea" placeholder="Enter Specific Area/Venue (e.g. Bandra West Turf)" required>
+                </div>
+                
+                <div class="form-group">
+                    <label style="font-size: 12px; color: #666; display: block; margin-bottom: 5px;">Date & Time of Event</label>
+                    <input type="datetime-local" id="eventTime" required>
+                </div>
+                
+                <button id="postEventBtn" class="btn-primary" style="width: 100%; padding: 14px; font-weight: bold;">Post Event</button>
+            </div>
+        </section>
+
+        <section style="margin-bottom: 40px;">
+            <h3>My Active Events</h3>
+            <div id="userEventsList" class="empty-state">
+                No active events posted yet.
+            </div>
+        </section>
+
+        <section class="card">
+            <h3>Establish Your Ability</h3>
+            <div style="display: flex; flex-direction: column; gap: 15px;">
+                <div>
+                    <label style="font-size: 13px; font-weight: 600;">Skill Level:</label>
+                    <select id="abilityLevel" style="margin-top: 5px;">
+                        <option value="Beginner">Beginner</option>
+                        <option value="Intermediate">Intermediate</option>
+                        <option value="Advanced">Advanced</option>
+                    </select>
+                </div>
+                
+                <div>
+                    <label style="font-size: 13px; font-weight: 600;">Main Interest:</label>
+                    <select id="interestSelect" style="margin-top: 5px;">
+                        <option value="" disabled selected>Loading Sports...</option>
+                    </select>
+                </div>
+                
+                <button id="saveProfileBtn" class="btn-primary" style="background: #28a745;">Save & Start Matching</button>
+            </div>
+        </section>
+
+        <section style="margin-top: 30px;">
+            <h3>Potential Sports Buddies</h3>
+            <div id="matchResults" class="grid-layout empty-state">
+                Update your profile to find players near you.
+            </div>
+        </section>
+    </main>
+
+    <script type="module">
+        import { db } from './src/firebase-config.js';
+        import { collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-firestore.js";
+        import { addSportsEvent, saveUserProfile } from './src/user-core.js';
+
+        const sportDropdown = document.getElementById('eventSportType');
+        const cityDropdown = document.getElementById('eventCity');
+        const interestDropdown = document.getElementById('interestSelect');
+
+        onAuthStateChanged(auth, async (user) => {
+            if (!user) { window.location.href = 'index.html'; return; }
+            
+            const userDoc = await getDoc(doc(db, "users", user.uid));
+            if (userDoc.exists() && userDoc.data().role === 'admin') {
+                // If an Admin tries to go to User Dash, send them back to Admin Dash
+                window.location.href = 'admin-dashboard.html';
+            }
+        });
+
+        // --- 1. REAL-TIME SYNC: Sports & Cities from Admin Panel ---
+        
+        // Sync Sports Categories
+        onSnapshot(collection(db, "categories"), (snapshot) => {
+            sportDropdown.innerHTML = '<option value="" disabled selected>Select Sport</option>';
+            interestDropdown.innerHTML = '<option value="" disabled selected>Select Interest</option>';
+            snapshot.forEach(doc => {
+                const name = doc.data().name;
+                if (name) {
+                    sportDropdown.add(new Option(name, name));
+                    interestDropdown.add(new Option(name, name));
+                }
+            });
+        });
+
+        // Sync Cities (Admin List)
+        onSnapshot(collection(db, "cities"), (snapshot) => {
+            cityDropdown.innerHTML = '<option value="" disabled selected>Select City</option>';
+            snapshot.forEach(doc => {
+                const cityName = doc.data().city;
+                if (cityName) cityDropdown.add(new Option(cityName, cityName));
+            });
+        });
+
+        // --- 2. ACTION: Post Event ---
+        document.getElementById('postEventBtn').addEventListener('click', async () => {
+            const city = cityDropdown.value;
+            const area = document.getElementById('eventArea').value;
+
+            const data = {
+                title: document.getElementById('eventTitle').value,
+                sport: sportDropdown.value,
+                city: city,
+                area: area,
+                location: `${area}, ${city}`, // Combined for display
+                time: document.getElementById('eventTime').value
+            };
+
+            // Basic Validation
+            if (!data.title || !data.sport || !city || !area || !data.time) {
+                return alert("Please fill in all event details!");
+            }
+
+            const success = await addSportsEvent(data);
+            if (success) {
+                alert("Match Posted Successfully!");
+                // Clear fields
+                document.getElementById('eventTitle').value = "";
+                document.getElementById('eventArea').value = "";
+                document.getElementById('eventTime').value = "";
+                cityDropdown.selectedIndex = 0;
+                sportDropdown.selectedIndex = 0;
+            }
+        });
+
+        // --- 3. ACTION: Save Profile ---
+        document.getElementById('saveProfileBtn').addEventListener('click', async () => {
+            const profile = {
+                level: document.getElementById('abilityLevel').value,
+                interest: interestDropdown.value
+            };
+            
+            if (!profile.interest) return alert("Please select your primary sports interest!");
+            
+            const success = await saveUserProfile(profile);
+            if (success) alert("Profile updated! Searching for buddies...");
+        });
+
+        // --- 4. ACTION: Logout ---
+        document.getElementById('logoutBtn').addEventListener('click', () => {
+            if(confirm("Logout from Sports Buddy?")) {
+                window.location.href = 'index.html';
+            }
+        });
+
+        // --- 5. REAL-TIME VIEW: MY ACTIVE EVENTS ---
+        import { query, where, orderBy } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-firestore.js";
+        import { auth } from './src/firebase-config.js';
+        import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-auth.js";
+
+        const eventsList = document.getElementById('userEventsList');
+
+        // We need to wait for the user to be logged in to get their UID
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                // Query events where 'hostId' matches the current user
+                const q = query(
+                    collection(db, "events"), 
+                    where("hostId", "==", user.uid),
+                    orderBy("createdAt", "desc")
+                );
+
+                onSnapshot(q, (snapshot) => {
+                    if (snapshot.empty) {
+                        eventsList.innerHTML = "No active events posted yet.";
+                        return;
+                    }
+
+                    eventsList.innerHTML = ""; // Clear the "Loading" text
+                    snapshot.forEach(doc => {
+                        const event = doc.data();
+                        const eventCard = document.createElement('div');
+                        eventCard.style = "background: #f8f9fa; padding: 15px; border-left: 5px solid #007bff; margin-bottom: 10px; border-radius: 5px; box-shadow: 2px 2px 5px rgba(0,0,0,0.05);";
+                        
+                        eventCard.innerHTML = `
+                            <div style="display: flex; justify-content: space-between; align-items: start;">
+                                <div>
+                                    <strong style="font-size: 1.1rem; color: #1a1a2e;">${event.title}</strong><br>
+                                    <span style="color: #666; font-size: 0.9rem;">📍 ${event.location}</span><br>
+                                    <span style="color: #007bff; font-weight: 600;">⚽ ${event.sport}</span>
+                                </div>
+                                <div style="text-align: right; font-size: 0.85rem; color: #888;">
+                                    📅 ${new Date(event.time).toLocaleString()}<br>
+                                    <button onclick="window.delEvent('${doc.id}')" style="margin-top: 5px; color: #ff4d4d; border: none; background: none; cursor: pointer; text-decoration: underline;">Cancel Event</button>
+                                </div>
+                            </div>
+                        `;
+                        eventsList.appendChild(eventCard);
+                    });
+                });
+            }
+        });
+
+        // Helper to delete an event
+        import { deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-firestore.js";
+        window.delEvent = async (id) => {
+            if (confirm("Are you sure you want to cancel this event?")) {
+                await deleteDoc(doc(db, "events", id));
+                alert("Event Cancelled.");
+            }
+        };
+    </script>
+</body>
+</html>

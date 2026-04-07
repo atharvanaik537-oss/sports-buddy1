@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Join Sports Buddy | Register</title>
+    <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body class="auth-page">
+    <div class="auth-container">
+        <h2>Create an Account</h2>
+        <p>Find your sports buddy and start playing!</p>
+        
+        <form id="registerForm">
+            <div class="form-group">
+                <input type="email" id="regEmail" placeholder="Email Address" required>
+            </div>
+            <div class="form-group">
+                <input type="password" id="regPass" placeholder="Create Password" required minlength="6">
+            </div>
+            <button type="submit" class="btn-primary">Sign Up</button>
+        </form>
+        
+        <p class="auth-footer">
+            Already have an account? <a href="login.html">Login here</a>
+        </p>
+    </div>
+
+    <script type="module">
+        import { registerUser } from './src/auth.js';
+        import { logAction } from './src/logger.js';
+
+        document.getElementById('registerForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('regEmail').value;
+            const password = document.getElementById('regPass').value;
+
+            // Fulfilling mandatory logging requirement
+            logAction('User Registration Attempt', 'Attempted', { email: email });
+
+            // Using the auth logic from src/auth.js
+            await registerUser(email, password);
+        });
+    </script>
+</body>
+</html>

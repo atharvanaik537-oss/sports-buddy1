@@ -1,0 +1,51 @@
+/* assets/css/admin.css */
+:root {
+    --primary-color: #1e3a8a; /* Deep Navy */
+    --accent-color: #f97316;  /* Sports Orange */
+    --bg-light: #f3f4f6;
+    --text-dark: #1f2937;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: var(--bg-light);
+    display: flex;
+    margin: 0;
+}
+
+.sidebar {
+    width: 250px;
+    height: 100vh;
+    background: var(--primary-color);
+    color: white;
+    padding: 20px;
+    position: fixed;
+}
+
+.main-content {
+    margin-left: 270px;
+    padding: 40px;
+    width: 100%;
+}
+
+.card {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+}
+
+.btn-admin {
+    background: var(--accent-color);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.btn-admin:hover {
+    background: #ea580c;
+}

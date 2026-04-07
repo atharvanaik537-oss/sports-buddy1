@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+    <title>Admin Dashboard | Sports Buddy</title>
+    <link rel="stylesheet" href="assets/css/style.css">
+    <style>
+        body { 
+            display: flex; 
+            flex-direction: column; /* Stack vertically on mobile */
+            min-height: 100vh; 
+            background: #f4f7f6; 
+            margin: 0; 
+            font-family: 'Segoe UI', sans-serif; 
+        }
+        
+        .sidebar { 
+            width: 100%; /* Full width on mobile */
+            background: #1a1a2e; 
+            color: white; 
+            padding: 20px; 
+            box-sizing: border-box;
+        }
+
+        .main-content { 
+            flex: 1; 
+            padding: 20px; /* Reduced padding for smaller screens */
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        /* Desktop View: Side-by-side again */
+        @media (min-width: 768px) {
+            body { flex-direction: row; }
+            .sidebar { width: 250px; }
+        }
+
+        .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 20px; }
+        .admin-form { display: flex; flex-direction: column; gap: 10px; } /* Stack form inputs on mobile */
+        
+        @media (min-width: 480px) {
+            .admin-form { flex-direction: row; }
+        }
+
+        input[type="text"] { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
+        .btn-primary { width: 100%; max-width: none; padding: 12px; background: #007bff; color: white; border: none; border-radius: 8px; cursor: pointer; }
+        
+        .data-item-row { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid #eee; font-size: 14px; }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <h2>Sports Buddy</h2>
+        <p style="font-size: 12px; color: #888; margin-bottom: 30px;">ADMINISTRATOR PANEL</p>
+        <hr style="border: 0; border-top: 1px solid #333; margin-bottom: 20px;">
+        <div class="nav-links">
+            <p><a href="admin-dashboard.html" class="active">Dashboard</a></p>
+            <p><a href="index.html" style="color: #ff4d4d;">Logout</a></p>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <h1>Platform Management</h1>
+
+        <div class="card">
+            <h3>Add New Sports Category</h3>
+            <form id="categoryForm" class="admin-form">
+                <input type="text" id="categoryInput" placeholder="Enter sport name (e.g. Badminton, Swimming)" required>
+                <button type="submit" class="btn-primary">Add Category</button>
+            </form>
+        </div>
+
+        <div class="card">
+            <h3>Manage Operating Cities</h3>
+            <form id="locationForm" class="admin-form">
+                <input type="text" id="cityInput" placeholder="Enter City Name (e.g. Mumbai, Pune, Delhi)" required>
+                <button type="submit" class="btn-primary" style="background: #28a745;">Save City</button>
+            </form>
+        </div>
+
+        <div class="card">
+            <h3>Active Sports Categories</h3>
+            <div id="categoryList" class="empty-text">Loading sports...</div>
+        </div>
+
+        <div class="card">
+            <h3>Active Cities</h3>
+            <div id="locationList" class="empty-text">Loading cities...</div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { db, auth } from './src/firebase-config.js';
+        import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-auth.js";
+        import { collection, onSnapshot, addDoc, deleteDoc, doc, getDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-firestore.js";
+
+        onAuthStateChanged(auth, async (user) => {
+            if (!user) { window.location.href = 'index.html'; return; }
+            
+            const userDoc = await getDoc(doc(db, "users", user.uid));
+            if (!userDoc.exists() || userDoc.data().role !== 'admin') {
+                alert("Restricted Area: Admins Only");
+                window.location.href = 'user-dashboard.html'; // Kick them out to User Dash
+            }
+        });
+
+        // --- 0. SECURITY CHECK: RESTRICT ACCESS ---
+        onAuthStateChanged(auth, async (user) => {
+            if (!user) {
+                window.location.href = 'index.html'; // Redirect to login if not signed in
+                return;
+            }
+
+            try {
+                // Fetch the user document from the 'users' collection
+                const userRef = doc(db, "users", user.uid);
+                const userSnap = await getDoc(userRef);
+
+                if (userSnap.exists()) {
+                    const userData = userSnap.data();
+                    // Check if role is admin. If not, alert and redirect.
+                    if (userData.role !== 'admin') {
+                        alert("Access Denied: Admin privileges required.");
+                        window.location.href = 'user-dashboard.html';
+                    }
+                } else {
+                    // If no user record exists in Firestore, treat as non-admin
+                    alert("Unauthorized Access.");
+                    window.location.href = 'user-dashboard.html';
+                }
+            } catch (error) {
+                console.error("Security Check Error:", error);
+                window.location.href = 'user-dashboard.html';
+            }
+        });
+
+        // --- A. FORM SUBMISSIONS ---
+
+        document.getElementById('categoryForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const input = document.getElementById('categoryInput');
+            try {
+                await addDoc(collection(db, "categories"), { 
+                    name: input.value.trim(), 
+                    createdAt: serverTimestamp() 
+                });
+                input.value = "";
+            } catch (err) { alert("Error: " + err.message); }
+        });
+
+        document.getElementById('locationForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const input = document.getElementById('cityInput');
+            try {
+                await addDoc(collection(db, "cities"), { 
+                    city: input.value.trim(), 
+                    createdAt: serverTimestamp() 
+                });
+                input.value = "";
+            } catch (err) { alert("Error: " + err.message); }
+        });
+
+        // --- B. REAL-TIME DATA SYNC ---
+
+        onSnapshot(collection(db, "categories"), (snap) => {
+            const list = document.getElementById('categoryList');
+            list.innerHTML = snap.empty ? "No categories added." : "";
+            snap.forEach(d => {
+                const item = d.data();
+                const div = document.createElement('div');
+                div.className = "data-item-row";
+                div.innerHTML = `<span>${item.name}</span><button class="btn-delete" onclick="window.del('categories','${d.id}')">Delete</button>`;
+                list.appendChild(div);
+            });
+        });
+
+        onSnapshot(collection(db, "cities"), (snap) => {
+            const list = document.getElementById('locationList');
+            list.innerHTML = snap.empty ? "No cities added yet." : "";
+            snap.forEach(d => {
+                const item = d.data();
+                const div = document.createElement('div');
+                div.className = "data-item-row";
+                div.innerHTML = `<span>${item.city}</span><button class="btn-delete" onclick="window.del('cities','${d.id}')">Delete</button>`;
+                list.appendChild(div);
+            });
+        });
+
+        // --- C. GLOBAL HELPERS ---
+
+        window.del = async (coll, id) => {
+            if(confirm(`Are you sure you want to remove this item from the platform?`)) {
+                try {
+                    await deleteDoc(doc(db, coll, id));
+                } catch (err) { alert("Delete failed: " + err.message); }
+            }
+        };
+    </script>
+</body>
+</html>
