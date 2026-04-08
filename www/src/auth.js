@@ -14,7 +14,7 @@ import {
     setDoc 
 } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-firestore.js";
 
-// 4. Import your custom Logger (Required for source: 44)
+// 4. Import custom Logger (Required for source: 44)
 import { logAction } from './logger.js';
 
 // --- 1. Register User ---
@@ -59,7 +59,6 @@ export const loginUser = async (email, password, redirectUrl) => {
         window.location.href = redirectUrl;
     } catch (error) {
         logAction('Login', 'Error', { message: error.message });
-        // Using error.message instead of error.code for a more "User-Friendly" alert
         alert("Login Failed: " + error.message);
     }
 };
