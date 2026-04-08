@@ -77,7 +77,7 @@ Before running the app, ensure your www/src/firebase-config.js file is correctly
 
 ```bash
 
-### 4. Syncing to Android (Capacitor):
+4. Syncing to Android (Capacitor):
 #Since this is a hybrid app, you need to "copy" your web code into the Android folder every time you make changes to the HTML/JS:
 # Sync web assets to the native Android project:
 npx cap copy android
