@@ -97,6 +97,9 @@ Mobile: In Android Studio, click the 'Run' button (green play icon) to launch th
 The APK was generated using **Capacitor JS**. All core logic for authentication and event management resides in the `www/src/` directory.
 
 --- 
+## Download APK
+You can download the latest version of the Sports Buddy Android App here:
+https://github.com/atharvanaik537-oss/sports-buddy1/releases/tag/v1.0
 
 ## 👨‍💻 Developer
 * **Name:** Atharva Naik
